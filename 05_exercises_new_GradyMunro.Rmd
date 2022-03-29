@@ -82,10 +82,73 @@ Once your repository is created, you should always open your **project** rather 
 ## Warm-up exercises from tutorial
 
   1. Choose 2 graphs you have created for ANY assignment in this class and add interactivity using the `ggplotly()` function.
-  
+
+```{r, fig.alt = "Bar graph showing the number of harvests of each lettuce variety from Lisa's garden. Lettuce Mixture had 29 harvests, Farmer's Market Blend had 27 harvests, Tatsoi had 9 harvests, reseed had 3 harvests, and mustard greens had 1."}
+lettuce_harvest_graph <- garden_harvest %>% 
+  filter(vegetable %in% c("lettuce")) %>% 
+  group_by(variety) %>% 
+  ggplot(aes(y = fct_rev(fct_infreq(variety)))) +
+  geom_bar(aes(text = variety)) +
+  labs(title = "Harvests of Lettuce Varieties",
+       x = "Number of Harvests",
+       y = "")
+
+ggplotly(lettuce_harvest_graph,
+         tooltip = c("text", "x"))
+```
+
+```{r, fig.alt = "Graph showing the logged cumulative Covid-19 case counts since 2020 for Wisconsin, Minnesota, Iowa, and the Dakotas. We see a sharp increase beginning in March of 2020, and levelling off at the beginning of 2021. All of the states track with each other, but Wisconsion and Minnesota remain 1 and 2, respectively, once the curve levels off."}
+logged_covid_graph <- covid19 %>% 
+  filter(state %in% c("Minnesota", 
+                      "Wisconsin", 
+                      "Iowa", 
+                      "North Dakota", 
+                      "South Dakota")) %>% 
+  ggplot(aes(x = date,
+             y = cases,
+             colour = state)) +
+  scale_y_log10() +
+  geom_line() +
+  labs(title = "Logged Cumulative Covid-19 Case Count Since 2020",
+       x = "",
+       y = "Log of Cases") +
+  theme(legend.position = "none")
+
+ggplotly(logged_covid_graph)
+```
 
   
   2. Use animation to tell an interesting story with the `small_trains` dataset that contains data from the SNCF (National Society of French Railways). These are Tidy Tuesday data! Read more about it [here](https://github.com/rfordatascience/tidytuesday/tree/master/data/2019/2019-02-26).
+
+```{r, eval=FALSE}
+trains_anim <- small_trains %>% 
+  select(year,
+         month,
+         service,
+         num_arriving_late) %>% 
+  group_by(year, 
+           month, 
+           service) %>% 
+  summarise(num_arriving_late = sum(num_arriving_late)) %>%
+  drop_na(num_arriving_late) %>% 
+  filter(year != 2018) %>% 
+  mutate(month = month.abb[as.numeric(month)]) %>% 
+  ggplot(aes(x = month,
+             y = num_arriving_late,
+             fill = service)) +
+  geom_col() +
+  labs(title = "Total Number of Late Arrivals by Train Service",
+       x = "",
+       y = "",
+       subtitle = "Year: {closest_state}")
+  transition_states(year)
+
+anim_save("trains_animation.gif", 
+          animation = trains_anim)
+```
+```{r}
+knitr::include_graphics("trains_animation.gif")
+```
 
 
 ## Garden data
