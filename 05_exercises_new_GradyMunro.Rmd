@@ -12,7 +12,7 @@ output:
 
 
 ```{r setup, include=FALSE}
-#knitr::opts_chunk$set(echo = TRUE, error=TRUE, message=FALSE, warning=FALSE)
+knitr::opts_chunk$set(echo = TRUE, error=TRUE, message=FALSE, warning=FALSE)
 ```
 
 ```{r libraries}
@@ -140,7 +140,7 @@ trains_anim <- small_trains %>%
   labs(title = "Total Number of Late Arrivals by Train Service",
        x = "",
        y = "",
-       subtitle = "Year: {closest_state}")
+       subtitle = "Year: {closest_state}") +
   transition_states(year)
 
 anim_save("trains_animation.gif", 
@@ -159,16 +159,37 @@ knitr::include_graphics("trains_animation.gif")
   * Use the data you just made to create a static cumulative harvest area plot, with the areas filled with different colors for each variety and arranged (HINT: `fct_reorder()`) from most to least harvested weights (most on the bottom).  
   * Add animation to reveal the plot over date. Instead of having a legend, place the variety names directly on the graph (refer back to the tutorial for how to do this).
 
-```{r}
-garden_harvest %>% 
+```{r, eval=FALSE}
+tomato_animation <- garden_harvest %>% 
   filter(vegetable == "tomatoes") %>% 
   group_by(date, variety) %>% 
   summarize(daily_harvest_lb = sum(weight)*0.00220462) %>% 
   ungroup() %>% 
   complete(variety, 
            date, 
-           fill = list(daily_harvest_lb = 0))
+           fill = list(daily_harvest_lb = 0)) %>% 
+  group_by(variety) %>% 
+  mutate(cum_harvest_lb = cumsum(daily_harvest_lb)) %>% 
+  ggplot(aes(x = date,
+             y = cum_harvest_lb)) +
+  geom_area(aes(fill = fct_reorder(variety, 
+                                   cum_harvest_lb,
+                                   .fun = max))) +
+  geom_text(aes(label = variety,
+                position = "stack",
+                check_overlap = TRUE)) +
+  labs(title = "Cumulative Harvest of Tomato Varieties Over Time",
+       x = "",
+       y = "Harvest Weight (lbs)",
+       subtitle = "Date: {frame_along}") +
+  theme(legend.position = "none") +
+  transition_reveal(date)
   
+anim_save("tomato_animation.gif", 
+          animation = tomato_animation)
+```
+```{r}
+knitr::include_graphics("tomato_animation.gif")
 ```
 
 
@@ -184,11 +205,81 @@ garden_harvest %>%
   * CHALLENGE: use the `ggimage` package and `geom_image` to add a bike image instead of a red point. You can use [this](https://raw.githubusercontent.com/llendway/animation_and_interactivity/master/bike.png) image. See [here](https://goodekat.github.io/presentations/2019-isugg-gganimate-spooky/slides.html#35) for an example. 
   * Add something of your own! And comment on if you prefer this to the static map and why or why not.
   
+```{r, eval=FALSE}
+mallorca_map <- get_stamenmap(
+    bbox = c(left = 2.3433, bottom = 39.5162, right = 2.6929, top = 39.7051), 
+    maptype = "terrain",
+    zoom = 12)
+
+mallorca_animation <- ggmap(mallorca_map) +
+  geom_path(data = mallorca_bike_day7, 
+            aes(x = lon, 
+                y = lat, 
+                color = ele),
+            size = 3) +
+  geom_point(data = mallorca_bike_day7,
+             aes(x = lon, 
+                 y = lat),
+             color = "red",
+             size = 3) +
+  labs(title = "Lisa's Bike Ride",
+       subtitle = "Time: {frame_along}") +
+  scale_color_continuous(name="Elevation") +
+  theme_map() +
+  theme(legend.background = element_blank()) +
+  transition_reveal(time)
+
+anim_save("mallorca_animation.gif", 
+          animation = mallorca_animation)
+```
+
+```{r}
+knitr::include_graphics("mallorca_animation.gif")
+```
+
+I much prefer this to the static map. The map is showing a bike ride, but it's hard to tell where the ride starts and stops. Furthermore, you get the sense of the pace of the ride and you get to see the point where you stopped for a break.
+  
   5. In this exercise, you get to meet Lisa's sister, Heather! She is a proud Mac grad, currently works as a Data Scientist where she uses R everyday, and for a few years (while still holding a full-time job) she was a pro triathlete. You are going to map one of her races. The data from each discipline of the Ironman 70.3 Pan Am championships, Panama is in a separate file - `panama_swim`, `panama_bike`, and `panama_run`. Create a similar map to the one you created with my cycling data. You will need to make some small changes: 1. combine the files putting them in swim, bike, run order (HINT: `bind_rows()`), 2. make the leading dot a different color depending on the event (for an extra challenge, make it a different image using `geom_image()!), 3. CHALLENGE (optional): color by speed, which you will need to compute on your own from the data. You can read Heather's race report [here](https://heatherlendway.com/2016/02/10/ironman-70-3-pan-american-championships-panama-race-report/). She is also in the Macalester Athletics [Hall of Fame](https://athletics.macalester.edu/honors/hall-of-fame/heather-lendway/184) and still has records at the pool. 
   
 ```{r}
+panama_all <- panama_bike %>% 
+  bind_rows(panama_run,
+            panama_swim) %>% 
+  mutate(ele = replace_na(ele, 0))
 
+panama_map <- get_stamenmap(
+    bbox = c(left = -79.5953, bottom = 8.8896, right = -79.4205, top = 9.0106), 
+    maptype = "terrain",
+    zoom = 13)
 ```
+  
+```{r, eval=FALSE}
+panama_animation <- ggmap(panama_map) +
+  geom_path(data = panama_all, 
+             aes(x = lon, 
+                 y = lat, 
+                 color = event),
+             size = 1.5) +
+  geom_point(data = panama_all,
+             aes(x = lon,
+                 y = lat,
+                 color = event),
+             size = 1.5) +
+  labs(title = "Heather's Triathlon in Panama",
+       subtitle = "Time: {frame_along}") +
+  scale_color_viridis_d() +
+  theme_map() +
+  theme(legend.background = element_blank()) +
+  transition_reveal(time)
+
+anim_save("panama_animation.gif", 
+          animation = panama_animation)
+```
+
+```{r}
+knitr::include_graphics("panama_animation.gif")
+```
+
   
 ## COVID-19 data
 
@@ -209,15 +300,53 @@ census_pop_est_2018 <- read_csv("https://www.dropbox.com/s/6txwv3b4ng7pepe/us_ce
 states_map <- map_data("state")
 ```
 
+```{r, eval=FALSE}
+covid19_recent <- covid19 %>% 
+  mutate(state = str_to_lower(state)) %>%
+  left_join(census_pop_est_2018,
+            by = c("state")) %>% 
+  mutate(cases_per_10000 = (cases/est_pop_2018)*10000) %>% 
+  filter(fips <= 56 & fips != 15 & fips != 02) %>% 
+  filter(day(date) == 15)
+  
+
+covid19_animation <- covid19_recent %>% 
+  ggplot() +
+  geom_map(map = states_map,
+           aes(map_id = state,
+               fill = cases_per_10000,
+               group = date)) +
+  scale_fill_viridis_c(option = "viridis") +
+  expand_limits(x = states_map$long, 
+                y = states_map$lat) +
+  labs(title = "Map of Covid19 Cases per 10,000 People, by State",
+       fill = "Cases per 10,000",
+       subtitle = "Date: {closest_state}") +
+  theme_map() +
+  transition_states(date)
+
+covid19_animation_final <- animate(covid19_animation, 
+                                   nframes = 200,
+                                   end_pause = 10)
+
+anim_save("covid19_animation.gif", 
+          animation = covid19_animation_final)
+```
+
+```{r}
+knitr::include_graphics("covid19_animation.gif")
+```
+
+It's very interesting to see which states held off longer than others, and which saw pretty quick risings in cases. The Dakotas stand out fairly quickly which is at first surprising, but the more you think about it the less surprising it becomes.
+
 ## Your first `shiny` app (for next week!)
 
   7. This app will also use the COVID data. Make sure you load that data and all the libraries you need in the `app.R` file you create. You should create a new project for the app, separate from the homework project. Below, you will post a link to the app that you publish on shinyapps.io. You will create an app to compare states' daily number of COVID cases per 100,000 over time. The x-axis will be date. You will have an input box where the user can choose which states to compare (`selectInput()`), a slider where the user can choose the date range, and a submit button to click once the user has chosen all states they're interested in comparing. The graph should display a different line for each state, with labels either on the graph or in a legend. Color can be used if needed. 
   
-Put the link to your app here: 
+Put the link to your app here: [Link](https://gradymunro.shinyapps.io/exercise_05_shiny/)
   
 ## GitHub link
 
   8. Below, provide a link to your GitHub repo with this set of Weekly Exercises. 
 
-
-**DID YOU REMEMBER TO UNCOMMENT THE OPTIONS AT THE TOP?**
+[Link](https://github.com/gradymunro/exercise05.git)
